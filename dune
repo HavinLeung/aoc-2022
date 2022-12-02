@@ -1,0 +1,10 @@
+(library
+  (name foo)
+  (libraries core re)
+  (inline_tests
+    (deps
+      (glob_files *.txt)
+    )
+  )
+  (preprocess (pps ppx_jane))
+)
