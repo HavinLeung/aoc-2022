@@ -16,12 +16,8 @@ let parse lines =
   |> List.map ~f:(Tuple2.map_snd ~f:Int.of_string)
   |> List.map
        ~f:
-         (Tuple2.map_fst ~f:(function
-           | "R" -> `R
-           | "L" -> `L
-           | "U" -> `U
-           | "D" -> `D
-           | _ -> failwith "no"))
+         (Tuple2.map_fst ~f:(fun x ->
+              Sexp.Atom x |> [%of_sexp: [ `R | `L | `U | `D ]]))
 
 module Coord = struct
   module T = struct
@@ -31,43 +27,42 @@ module Coord = struct
   include T
   include Comparable.Make (T)
 
+  let zero = (0, 0)
+
   let sub (x1, y1) (x2, y2) = (x1 - x2, y1 - y2)
 
   let add (x1, y1) (x2, y2) = (x1 + x2, y1 + y2)
 
-  let dir_to_t = function
-    | `R -> (1, 0)
-    | `L -> (-1, 0)
-    | `U -> (0, 1)
-    | `D -> (0, -1)
-
-  let touching t1 t2 =
-    match sub t1 t2 with (-1 | 0 | 1), (-1 | 0 | 1) -> true | _ -> false
-
-  let diag_moves =
-    let x = [ -1; 1 ] in
-    List.cartesian_product x x
-
-  let zero = (0, 0)
-
-  let follow' h t =
-    let t =
-      match sub h t with
-      | (-1 | 0 | 1), (-1 | 0 | 1) -> t
-      | 0, 2 -> add t (0, 1)
-      | 0, -2 -> add t (0, -1)
-      | 2, 0 -> add t (1, 0)
-      | -2, 0 -> add t (-1, 0)
-      | _ -> List.map diag_moves ~f:(add t) |> List.find_exn ~f:(touching h)
-    in
-    t
+  let div (x, y) n = (x / n, y / n)
 
   let follow knots dir =
+    let follow h t =
+      let touching_origin = function
+        | (-1 | 0 | 1), (-1 | 0 | 1) -> true
+        | _ -> false
+      in
+      match sub h t with
+      | (0, (2 | -2) | (2 | -2), 0) as dir -> add t (div dir 2)
+      | x when touching_origin x -> t
+      | _ ->
+          let diag_moves =
+            let x = [ -1; 1 ] in
+            List.cartesian_product x x
+          in
+          List.map diag_moves ~f:(add t)
+          |> List.find_exn ~f:(Fn.compose touching_origin (sub h))
+    in
+    let dir_to_t = function
+      | `R -> (1, 0)
+      | `L -> (-1, 0)
+      | `U -> (0, 1)
+      | `D -> (0, -1)
+    in
     let rec move_knots head knots acc : t list =
       match knots with
       | [] -> head :: acc |> List.rev
       | knot :: knots ->
-          let knot = follow' head knot in
+          let knot = follow head knot in
           move_knots knot knots (head :: acc)
     in
     let dir = dir_to_t dir in
