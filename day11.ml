@@ -49,17 +49,13 @@ type monkey =
   ; throw : int -> int
   ; num_inspections : int
   }
-[@@deriving sexp]
 
 let parse input =
   let monkeys =
     input
     |> Re.split (Re.Pcre.regexp ~flags:[ `MULTILINE ] "\n\n")
-    |> List.mapi ~f:(fun _i monkey ->
-         (* printf "%s\n" monkey; *)
-         Array.slice (Re.Pcre.extract ~rex monkey) 1 0)
-    |> List.map ~f:(fun x -> (* print_s [%message (x : string array)]; *)
-                             x)
+    |> List.mapi ~f:(fun _i monkey -> Array.slice (Re.Pcre.extract ~rex monkey) 1 0)
+    |> List.map ~f:(fun x -> x)
     |> List.map ~f:(fun m ->
          let items =
            String.split ~on:',' m.(1)
@@ -130,14 +126,11 @@ let part2 input =
 
 let%expect_test _ =
   part1 example;
-  [%expect {|
-    10605 |}];
+  [%expect {| 10605 |}];
   part1 input;
   [%expect {| 61503 |}];
   part2 example;
-  [%expect {|
-    2713310158 |}];
+  [%expect {| 2713310158 |}];
   part2 input;
-  [%expect {|
-    14081365540 |}]
+  [%expect {| 14081365540 |}]
 ;;
